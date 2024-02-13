@@ -2,9 +2,9 @@ from django.db import models
 from django.contrib.auth.models import AbstractUser
 
 class Lister(AbstractUser):
-   username = models.CharField(unique=True, max_length=30)
    email = models.EmailField(unique=True, max_length=100)
-   contact_details = models.CharField(max_length=100)
+   username = models.CharField(unique=True, max_length=30, blank=True, null=True)
+   contact_details = models.CharField(max_length=100, blank=True, null=True)
    lister_type_choices = (
       ('A', 'Agent'),
       ('L', 'Landlord'),
@@ -12,7 +12,7 @@ class Lister(AbstractUser):
    lister_type = models.CharField(max_length=1, choices=lister_type_choices, default='A')
 
    def __str__(self):
-      return self.username
+      return self.email
 
 class Listing(models.Model):
    lister = models.ForeignKey(Lister, related_name='listings', on_delete=models.CASCADE, null=True, blank=True)

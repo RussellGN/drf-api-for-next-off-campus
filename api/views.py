@@ -8,7 +8,7 @@ from rest_framework.authentication import SessionAuthentication, TokenAuthentica
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 
 from .models import Lister, Listing, Image
-from .serializers import ListerSerializer, ListingSerializer, ListingCreationSerializer
+from .serializers import ListerSerializer, ListingSerializer, ListingCreationSerializer, ListerCreationSerializer
 
 @api_view(['GET'])
 def index(request):
@@ -110,6 +110,21 @@ def index(request):
 
 @api_view(['POST'])
 def signup(request):
+   serializer = ListerCreationSerializer(data=request.data)
+   if not request.data['password']:
+      return Response({'detail': 'registration failed',}, status=status.HTTP_400_BAD_REQUEST)
+
+   if serializer.is_valid():
+      serializer.save()
+      lister = Lister.objects.get(email=request.data['email']) 
+      lister.set_password(request.data['password'])
+      lister.save()
+      token = Token.objects.create(user=lister)
+      return Response({'message': 'registration successful', 'token': token.key, 'lister': serializer.data}, status=status.HTTP_201_CREATED)
+   return Response({'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def signup_old(request):
    serializer = ListerSerializer(data=request.data)
    if not request.data['password']:
       return Response({'detail': 'registration failed',}, status=status.HTTP_400_BAD_REQUEST)
@@ -261,7 +276,7 @@ def listing(request, slug):
                # Image.objects.delete(id= int(id)) 
                Image.objects.get(id= int(id)).delete() 
 
-         listing = Listing.objects.get(slug=slug)
+         listing = Listing.objects.get(slug=listing.slug)
          serializer = ListingSerializer(instance=listing)
          return Response({'message': 'listing updated successfully', 'listing': serializer.data})
       return Response({'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)

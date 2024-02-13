@@ -6,6 +6,11 @@ class ListerSerializer(ModelSerializer):
       model = Lister
       fields = ['id', 'username', 'email', 'contact_details', 'lister_type']
 
+class ListerCreationSerializer(ModelSerializer):
+   class Meta:
+      model = Lister
+      fields = ['id', 'email']
+
 class ImageSerializer(ModelSerializer):
    class Meta:
       model = Image
