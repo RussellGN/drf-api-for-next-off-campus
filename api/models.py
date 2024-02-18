@@ -4,7 +4,7 @@ from django.contrib.auth.models import AbstractUser
 class Lister(AbstractUser):
    email = models.EmailField(unique=True, max_length=100)
    username = models.CharField(unique=True, max_length=30, blank=True, null=True)
-   contact_details = models.CharField(max_length=100, blank=True, null=True)
+   contact_details = models.CharField(max_length=100, default='No contact details yet')
    lister_type_choices = (
       ('A', 'Agent'),
       ('L', 'Landlord'),

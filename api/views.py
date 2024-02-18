@@ -1,3 +1,5 @@
+from django.core.paginator import Paginator  
+from django.db.models import Q 
 from django.utils.text import slugify
 from django.shortcuts import get_object_or_404 
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
@@ -118,6 +120,7 @@ def signup(request):
       serializer.save()
       lister = Lister.objects.get(email=request.data['email']) 
       lister.set_password(request.data['password'])
+      lister.username = 'lister-1000.' + str(lister.id)
       lister.save()
       token = Token.objects.create(user=lister)
       return Response({'message': 'registration successful', 'token': token.key, 'lister': serializer.data}, status=status.HTTP_201_CREATED)
@@ -183,9 +186,53 @@ def listings(request):
    if request.method == 'GET':
          query_params = request.GET
          print(query_params)
-         listings = Listing.objects.all().order_by('-date')
-         serializer = ListingSerializer(instance=listings, many=True)
-         return Response({'listings': serializer.data})
+         
+         query = query_params.get('query', None)
+         sort = query_params.get('sort', '-date')
+         page = query_params.get('page', 1)
+
+         # filters
+         accom_type = query_params.get('type', None)
+         rent_bracket = query_params.get('rent', None)
+         city = query_params.get('city', None)
+
+         print(query, sort, page, accom_type, rent_bracket, city)
+         listings = None
+
+         if query:
+            listings = Listing.objects.filter(
+               Q(title__icontains=query) |
+               Q(lister__username__icontains=query) |
+               Q(lister__email__icontains=query) |
+               Q(title__icontains=query) |
+               Q(location__icontains=query) |
+               Q(nearest_to__icontains=query) |
+               Q(description__icontains=query) |
+               Q(accomodation_type__icontains=query) 
+            ).order_by(sort)
+         else:
+            listings = Listing.objects.all().order_by(sort)
+         
+         if rent_bracket:
+            if str(rent_bracket).endswith('+'):
+               max = int(str(rent_bracket).removesuffix('+'))
+               listings = listings.filter(Q(rent__gte=max))
+            else:
+               min = int(str(rent_bracket).split('-')[0])
+               max = int(str(rent_bracket).split('-')[1])
+               listings = listings.filter(Q(rent__gte=min) & Q(rent__lte=max))
+         if city:
+            listings = listings.filter(Q(location__icontains=city))            
+         if accom_type:
+            q = Q()
+            for item in str(accom_type).strip().split(','):
+               q |= Q(accomodation_type__icontains=item)
+            listings = listings.filter(q)
+         
+         paginator = Paginator(listings, 5)
+         paginated_listings = paginator.get_page(page)
+         serializer = ListingSerializer(instance=paginated_listings, many=True)
+         return Response({'listings': serializer.data, 'page_count': paginator.num_pages, })
    else:
       data = {
          'lister': request.user,
