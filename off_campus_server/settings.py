@@ -23,7 +23,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-_&pfi_s))jt5=r&i*gdb%v#^i8ah%%lqkrstyrq_+*c1hjs^!t'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 ALLOWED_HOSTS = []
 
@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    'cloudinary_storage',
+    'cloudinary',
     'rest_framework',
     'rest_framework.authtoken',
     'corsheaders',
@@ -77,17 +79,52 @@ TEMPLATES = [
 WSGI_APPLICATION = 'off_campus_server.wsgi.application'
 
 
+# _______________________production stuff and custom settings___________________________
+
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+
+
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'railway',
+        'USER': 'postgres',
+        'PASSWORD': 'a4GdDefBCa6gCb34EaFD22DgBggBF4*6',
+        'HOST': 'monorail.proxy.rlwy.net',
+        'PORT': '55170',
     }
 }
 
+CLOUDINARY_STORAGE = {
+   'CLOUD_NAME': 'dlqmzd30p',
+   'API_KEY': '299121679692272',
+   'API_SECRET': 'io0cMewVsWBQjhKYSAi-FhDo7rg',
+}
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.RawMediaCloudinaryStorage'
 
+# Static files (CSS, JavaScript, Images)
+# https://docs.djangoproject.com/en/4.0/howto/static-files/
+
+STATIC_URL = 'static/'
+
+# MEDIA_ROOT = BASE_DIR / 'media'
+# MEDIA_URL = '/media/'
+
+MEDIA_URL = '/offcampus/media/'
+MEDIA_ROOT = BASE_DIR / 'offcampus' / 'media'
+
+## User model
+AUTH_USER_MODEL = 'api.Lister'
+
+# ______________________________________________________________
 
 
 # Password validation
@@ -121,18 +158,8 @@ USE_I18N = True
 USE_TZ = True
 
 
-# Static files (CSS, JavaScript, Images)
-# https://docs.djangoproject.com/en/4.0/howto/static-files/
-
-STATIC_URL = 'static/'
-
-MEDIA_ROOT = BASE_DIR / 'media'
-MEDIA_URL = '/media/'
-
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-## User model
-AUTH_USER_MODEL = 'api.Lister'
