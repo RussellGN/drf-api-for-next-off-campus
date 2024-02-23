@@ -10,8 +10,10 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.0/ref/settings/
 """
 
-import os
 from pathlib import Path
+from decouple import config
+
+is_dev = config('ENVIRONMENT') == 'development'
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -24,7 +26,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-_&pfi_s))jt5=r&i*gdb%v#^i8ah%%lqkrstyrq_+*c1hjs^!t'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG =  config('DEBUG', cast=bool)
 
 # ALLOWED_HOSTS = []
 ALLOWED_HOSTS = ['*'] 
@@ -80,56 +82,49 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'off_campus_server.wsgi.application'
 
-
-# _______________________production stuff and custom settings___________________________
+# User model
+AUTH_USER_MODEL = 'api.Lister'
 
 # Database
 # https://docs.djangoproject.com/en/4.0/ref/settings/#databases
 
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
 
+DATABASES = None
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'railway',
-        'USER': 'postgres',
-        'PASSWORD': 'a4GdDefBCa6gCb34EaFD22DgBggBF4*6',
-        'HOST': 'monorail.proxy.rlwy.net',
-        'PORT': '55170',
+if is_dev:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
-
-CLOUDINARY_STORAGE = {
-   'CLOUD_NAME': 'dlqmzd30p',
-   'API_KEY': '299121679692272',
-   'API_SECRET': 'io0cMewVsWBQjhKYSAi-FhDo7rg',
-}
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.RawMediaCloudinaryStorage'
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('DB_NAME'),
+            'USER': config('DB_USER'),
+            'PASSWORD': config('DB_PASSWORD'),
+            'HOST': config('DB_HOST'),
+            'PORT': config('DB_PORT'),
+        }
+    }
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
-# STATIC_URL = 'static/'
+STATIC_URL = 'static/'
 
-# MEDIA_ROOT = BASE_DIR / 'media'
-# MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_URL = '/media/' if is_dev else '/media/offcampus/' 
 
-# STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
-# STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+DEFAULT_FILE_STORAGE = 'django.core.files.storage.FileSystemStorage' if is_dev else 'cloudinary_storage.storage.MediaCloudinaryStorage'
 
-MEDIA_URL = '/offcampus/media/'
-MEDIA_ROOT = BASE_DIR / 'offcampus' / 'media'
-
-## User model
-AUTH_USER_MODEL = 'api.Lister'
-
-# ______________________________________________________________
+CLOUDINARY_STORAGE = {
+   'CLOUD_NAME': config('CLOUDINARY_CLOUD_NAME'),
+   'API_KEY': config('CLOUDINARY_API_KEY'),
+   'API_SECRET': config('CLOUDINARY_API_SECRET'),
+} if not is_dev else None
 
 
 # Password validation

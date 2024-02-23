@@ -1,4 +1,4 @@
-from rest_framework.serializers import ModelSerializer
+from rest_framework.serializers import SerializerMethodField, ModelSerializer
 from .models import Lister, Listing, Image
 
 class ListerSerializer(ModelSerializer):
@@ -12,10 +12,13 @@ class ListerCreationSerializer(ModelSerializer):
       fields = ['id', 'email']
 
 class ImageSerializer(ModelSerializer):
+   image = SerializerMethodField()
    class Meta:
       model = Image
       fields = ['id', 'image']
-      
+   def get_image(self, obj):
+      return self.context['request'].build_absolute_uri(obj.image.url)
+
 class ListingSerializer(ModelSerializer):
    lister = ListerSerializer(many=False, read_only=True)
    images = ImageSerializer(many=True, read_only=False)

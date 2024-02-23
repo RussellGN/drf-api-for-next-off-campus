@@ -94,7 +94,7 @@ def index(request):
          'query_params': None,
          'authorisation': 'authenticated',
          'response': 'user details',
-         'response_format': '{lister, lister_listings}',
+         'response_format': '{lister, lister_listings_length}',
       },
       {
          'route': 'api/auth/<id>',
@@ -160,9 +160,8 @@ def profile(request):
    lister = request.user
    if (request.method == 'GET'):
       lister_serializer = ListerSerializer(instance=lister)
-      listings = Listing.objects.filter(lister=lister).order_by('-date')
-      listings_serializer = ListingSerializer(instance=listings, many=True)
-      return Response({'lister': lister_serializer.data, 'lister_listings': listings_serializer.data})
+      lister_listings_length = Listing.objects.filter(lister=lister).count()
+      return Response({'lister': lister_serializer.data, 'lister_listings_length': lister_listings_length})
    else:
       data = {
          'contact_details': request.data.get('contact_details') if request.data.get('contact_details') else lister.contact_details,
@@ -188,6 +187,7 @@ def listings(request):
          print(query_params)
          
          query = query_params.get('query', None)
+         lister_id = query_params.get('listerid', None)
          sort = query_params.get('sort', '-date')
          page = query_params.get('page', 1)
 
@@ -199,39 +199,42 @@ def listings(request):
          print(query, sort, page, accom_type, rent_bracket, city)
          listings = None
 
-         if query:
-            listings = Listing.objects.filter(
-               Q(title__icontains=query) |
-               Q(lister__username__icontains=query) |
-               Q(lister__email__icontains=query) |
-               Q(title__icontains=query) |
-               Q(location__icontains=query) |
-               Q(nearest_to__icontains=query) |
-               Q(description__icontains=query) |
-               Q(accomodation_type__icontains=query) 
-            ).order_by(sort)
+         if lister_id:
+            listings = Listing.objects.filter(Q(lister__id=int(lister_id))).order_by('-date')
          else:
-            listings = Listing.objects.all().order_by(sort)
-         
-         if rent_bracket:
-            if str(rent_bracket).endswith('+'):
-               max = int(str(rent_bracket).removesuffix('+'))
-               listings = listings.filter(Q(rent__gte=max))
+            if query:
+               listings = Listing.objects.filter(
+                  Q(title__icontains=query) |
+                  Q(lister__username__icontains=query) |
+                  Q(lister__email__icontains=query) |
+                  Q(title__icontains=query) |
+                  Q(location__icontains=query) |
+                  Q(nearest_to__icontains=query) |
+                  Q(description__icontains=query) |
+                  Q(accomodation_type__icontains=query) 
+               ).order_by(sort)
             else:
-               min = int(str(rent_bracket).split('-')[0])
-               max = int(str(rent_bracket).split('-')[1])
-               listings = listings.filter(Q(rent__gte=min) & Q(rent__lte=max))
-         if city:
-            listings = listings.filter(Q(location__icontains=city))            
-         if accom_type:
-            q = Q()
-            for item in str(accom_type).strip().split(','):
-               q |= Q(accomodation_type__icontains=item)
-            listings = listings.filter(q)
+               listings = Listing.objects.all().order_by(sort)
+            
+            if rent_bracket:
+               if str(rent_bracket).endswith('+'):
+                  max = int(str(rent_bracket).removesuffix('+'))
+                  listings = listings.filter(Q(rent__gte=max))
+               else:
+                  min = int(str(rent_bracket).split('-')[0])
+                  max = int(str(rent_bracket).split('-')[1])
+                  listings = listings.filter(Q(rent__gte=min) & Q(rent__lte=max))
+            if city:
+               listings = listings.filter(Q(location__icontains=city))            
+            if accom_type:
+               q = Q()
+               for item in str(accom_type).strip().split(','):
+                  q |= Q(accomodation_type__icontains=item)
+               listings = listings.filter(q)
          
          paginator = Paginator(listings, 5)
          paginated_listings = paginator.get_page(page)
-         serializer = ListingSerializer(instance=paginated_listings, many=True)
+         serializer = ListingSerializer(instance=paginated_listings, many=True, context={'request': request})
          return Response({'listings': serializer.data, 'page_count': paginator.num_pages, })
    else:
       data = {
@@ -268,7 +271,7 @@ def listings(request):
             Image.objects.create(listing=listing, image=image)
 
          listing = Listing.objects.get(slug=listing.slug)
-         serializer = ListingSerializer(instance=listing)
+         serializer = ListingSerializer(instance=listing, context={'request': request})
          return Response({'message': 'listing creation successful', 'listing': serializer.data}, status=status.HTTP_201_CREATED)
       return Response({'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -280,8 +283,8 @@ def listing(request, slug):
 
    if request.method == 'GET':
       related_listings = Listing.objects.filter(lister=listing.lister).exclude(id=listing.id).order_by('-date')
-      related_listings_serializer = ListingSerializer(instance=related_listings, many=True)
-      serializer = ListingSerializer(instance=listing)
+      related_listings_serializer = ListingSerializer(instance=related_listings, many=True, context={'request': request})
+      serializer = ListingSerializer(instance=listing, context={'request': request})
 
       return Response({'listing': serializer.data, 'related_listings': related_listings_serializer.data})
 
@@ -324,7 +327,7 @@ def listing(request, slug):
                Image.objects.get(id= int(id)).delete() 
 
          listing = Listing.objects.get(slug=listing.slug)
-         serializer = ListingSerializer(instance=listing)
+         serializer = ListingSerializer(instance=listing, context={'request': request})
          return Response({'message': 'listing updated successfully', 'listing': serializer.data})
       return Response({'error': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
