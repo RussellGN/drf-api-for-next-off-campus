@@ -114,6 +114,7 @@ else:
 # https://docs.djangoproject.com/en/4.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = ''
 
 MEDIA_ROOT = BASE_DIR / 'media'
 MEDIA_URL = '/media/' if is_dev else '/media/offcampus/' 
